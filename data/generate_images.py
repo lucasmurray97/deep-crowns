@@ -52,7 +52,7 @@ for i in tqdm(range(len(dir_list))):
                 features_ = [0]
                 multi_p = MultiPolygon(polygons) # add crs using wkt or EPSG to have a .prj file
                 min_x, min_y, max_x, max_y = multi_p.bounds
-                bounding_box = ((max_x - min_x) + 160, (max_y - min_y) + 160)
+                bounding_box = ((max_x - min_x) + 320, (max_y - min_y) + 320)
                 if bounding_box[0] > max_box[0]:
                     max_box[0] = bounding_box[0]
                     if max_box[0]//80 > 500:
@@ -63,7 +63,7 @@ for i in tqdm(range(len(dir_list))):
                     if max_box[1]//80 > 500:
                         print("Found a big one (y)!")
                         bigs[i] = max_box
-                centers[i] = multi_p.centroid
+                centers[i] = (min_x + (max_x - min_x)/2, min_y + (max_y - min_y)/2)
 
 bbox = max_box
 pad = 80
@@ -76,7 +76,7 @@ with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     transform = f.transform
 dir_list = os.listdir("./hour_graphs/") 
 for i in tqdm(centers):
-    x, y = centers[i].x, centers[i].y
+    x, y = centers[i][0], centers[i][1]
     max_x = x + (bbox[0]/2)
     min_x = x - (bbox[0]/2)
     max_y = y + (bbox[1]/2)
