@@ -52,7 +52,7 @@ for i in tqdm(range(len(dir_list))):
                 features_ = [0]
                 multi_p = MultiPolygon(polygons) # add crs using wkt or EPSG to have a .prj file
                 min_x, min_y, max_x, max_y = multi_p.bounds
-                bounding_box = ((max_x - min_x), (max_y - min_y))
+                bounding_box = ((max_x - min_x) + 160, (max_y - min_y) + 160)
                 if bounding_box[0] > max_box[0]:
                     max_box[0] = bounding_box[0]
                     if max_box[0]//80 > 500:
@@ -66,6 +66,7 @@ for i in tqdm(range(len(dir_list))):
                 centers[i] = multi_p.centroid
 
 bbox = max_box
+pad = 80
 with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     limits = f.bounds
     limits_x = (limits[0], limits[2])
@@ -104,10 +105,7 @@ for i in tqdm(centers):
     # box(minx, miny, maxx, maxy, ccw=True)
     geom = box(min_x, min_y, max_x, max_y)
     gdr = gpd.GeoDataFrame({'feature': features_, 'geometry': geom}, crs=crs)
-    try:
-        gdr.to_file(f"./shapes/box_{i}.shp")
-    except:
-        print("File Error!")
+    gdr.to_file(f"./shapes/box_{i}.shp")
     with open(f"../data/hour_graphs/{dir_list[i]}", "rb") as file:
         hr_graph = pickle.load(file)
     nodata = -9999.0
@@ -123,8 +121,8 @@ for i in tqdm(centers):
                 mask[(idx[0]),(idx[1])] = True
                 iso[(idx[0]),(idx[1])] = True
                 coords = rasterio.transform.xy(transform, idx[0], idx[1])
-                x = int(coords[0] - min_x) // 80
-                y = int(max_y - coords[1]) // 80 
+                x = int((coords[0] - min_x) / 80)
+                y = int((max_y - coords[1]) / 80)
                 mask_[y,x] = True
                 iso_[y,x] = True
             idx2 = np.unravel_index(j - 1, (1173, 1406))
@@ -132,12 +130,10 @@ for i in tqdm(centers):
                 mask[(idx2[0]),(idx2[1])] = True
                 iso[(idx2[0]),(idx2[1])] = True
                 coords = rasterio.transform.xy(transform, idx2[0], idx2[1])
-                x = int(coords[0] - min_x) // 80 
-                y = bottom=int(max_y - coords[1]) // 80
+                x = int((coords[0] - min_x) / 80)
+                y = int((max_y - coords[1]) / 80)
                 mask_[y,x] = True
                 iso_[y,x] = True
-        np.savez_compressed(f'spreads/fire_{i}-{t}', mask_)
-        np.savez_compressed(f'spreads/iso_{i}-{t}', iso_)
-    plt.imshow(mask_)
-    plt.savefig(f"fires/fires-{i}.png")
+        plt.imsave(f'spreads/fire_{i}-{t}.png', mask_)
+        plt.imsave(f'spreads/iso_{i}-{t}.png', iso_)
     
