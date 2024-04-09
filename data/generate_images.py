@@ -31,15 +31,13 @@ for i in tqdm(range(len(dir_list))):
             for t in hr_graph:
                 for k,j in hr_graph[t][0]:
                     idx = np.unravel_index(k - 1, (1173, 1406))
-                    if image[idx[0], idx[0]] != nodata:
-                        if idx[0] < 0 or idx[1] < 0:
-                            print(i)
-                        mask[(idx[0]),(idx[1])] = True
+                    if idx[0] < 0 or idx[1] < 0:
+                        print(i)
+                    mask[(idx[0]),(idx[1])] = True
                     idx2 = np.unravel_index(j - 1, (1173, 1406))
-                    if image[idx2[0], idx2[0]] != nodata:
-                        if idx2[0] < 0 or idx2[1] < 0:
-                            print(i)
-                        mask[(idx2[0]),(idx2[1])] = True
+                    if idx2[0] < 0 or idx2[1] < 0:
+                        print(i)
+                    mask[(idx2[0]),(idx2[1])] = True
             polygons = []
             for coords, value in features.shapes(mask, transform = transform):
                 # ignore polygons corresponding to nodata
@@ -117,23 +115,21 @@ for i in tqdm(centers):
         iso_ = np.zeros(shape)
         for k,j in hr_graph[t][0]:
             idx = np.unravel_index(k - 1, (1173, 1406))
-            if image[idx[0], idx[0]] != nodata:
-                mask[(idx[0]),(idx[1])] = True
-                iso[(idx[0]),(idx[1])] = True
-                coords = rasterio.transform.xy(transform, idx[0], idx[1])
-                x = int((coords[0] - min_x) / 80)
-                y = int((max_y - coords[1]) / 80)
-                mask_[y,x] = True
-                iso_[y,x] = True
+            mask[(idx[0]),(idx[1])] = True
+            iso[(idx[0]),(idx[1])] = True
+            coords = rasterio.transform.xy(transform, idx[0], idx[1])
+            x = int((coords[0] - min_x) / 80)
+            y = int((max_y - coords[1]) / 80)
+            mask_[y,x] = True
+            iso_[y,x] = True
             idx2 = np.unravel_index(j - 1, (1173, 1406))
-            if image[idx2[0], idx2[0]] != nodata:
-                mask[(idx2[0]),(idx2[1])] = True
-                iso[(idx2[0]),(idx2[1])] = True
-                coords = rasterio.transform.xy(transform, idx2[0], idx2[1])
-                x = int((coords[0] - min_x) / 80)
-                y = int((max_y - coords[1]) / 80)
-                mask_[y,x] = True
-                iso_[y,x] = True
+            mask[(idx2[0]),(idx2[1])] = True
+            iso[(idx2[0]),(idx2[1])] = True
+            coords = rasterio.transform.xy(transform, idx2[0], idx2[1])
+            x = int((coords[0] - min_x) / 80)
+            y = int((max_y - coords[1]) / 80)
+            mask_[y,x] = True
+            iso_[y,x] = True
         plt.imsave(f'spreads/fire_{i}-{t}.png', mask_)
         plt.imsave(f'spreads/iso_{i}-{t}.png', iso_)
     
