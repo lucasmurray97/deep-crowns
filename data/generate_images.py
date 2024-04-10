@@ -17,8 +17,9 @@ isoc = {}
 max_box = [0,0]
 centers = {}
 bigs = {}
-for i in tqdm(range(len(dir_list))):
-    with open(f"../data/hour_graphs/{dir_list[i]}", "rb") as file:
+for i in dir_list:
+    fire_n = i.split("_")[1].split('.')[0]
+    with open(f"../data/hour_graphs/{i}", "rb") as file:
         hr_graph = pickle.load(file)
         with rasterio.open('./landscape/Input_Geotiff.tif') as f:
             image = f.read(1)
@@ -31,12 +32,8 @@ for i in tqdm(range(len(dir_list))):
             for t in hr_graph:
                 for k,j in hr_graph[t][0]:
                     idx = np.unravel_index(k - 1, (1173, 1406))
-                    if idx[0] < 0 or idx[1] < 0:
-                        print(i)
                     mask[(idx[0]),(idx[1])] = True
                     idx2 = np.unravel_index(j - 1, (1173, 1406))
-                    if idx2[0] < 0 or idx2[1] < 0:
-                        print(i)
                     mask[(idx2[0]),(idx2[1])] = True
             polygons = []
             for coords, value in features.shapes(mask, transform = transform):
@@ -61,7 +58,7 @@ for i in tqdm(range(len(dir_list))):
                     if max_box[1]//80 > 500:
                         print("Found a big one (y)!")
                         bigs[i] = max_box
-                centers[i] = (min_x + (max_x - min_x)/2, min_y + (max_y - min_y)/2)
+                centers[fire_n] = (min_x + (max_x - min_x)/2, min_y + (max_y - min_y)/2)
 
 bbox = max_box
 pad = 80
@@ -72,8 +69,8 @@ with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     dims = f.read(1).shape
     image = f.read(1)
     transform = f.transform
-dir_list = os.listdir("./hour_graphs/") 
 for i in tqdm(centers):
+    print(i)
     x, y = centers[i][0], centers[i][1]
     max_x = x + (bbox[0]/2)
     min_x = x - (bbox[0]/2)
@@ -104,7 +101,7 @@ for i in tqdm(centers):
     geom = box(min_x, min_y, max_x, max_y)
     gdr = gpd.GeoDataFrame({'feature': features_, 'geometry': geom}, crs=crs)
     gdr.to_file(f"./shapes/box_{i}.shp")
-    with open(f"../data/hour_graphs/{dir_list[i]}", "rb") as file:
+    with open(f"../data/hour_graphs/graph_{i}.pkl", "rb") as file:
         hr_graph = pickle.load(file)
     nodata = -9999.0
     mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
