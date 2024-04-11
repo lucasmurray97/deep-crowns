@@ -43,7 +43,7 @@ for i in tqdm(range(len(dir_list))):
                 gdr.to_file("./isocrowns/isos.shp")
                 with fiona.open("./isocrowns/isos.shp", "r") as shapefile:
                     shapes = [feature["geometry"] for feature in shapefile]
-                out_image, out_transform = rasterio.mask.mask(f, shapes, crop=True)
+                out_image, out_transform = rasterio.mask.mask(f, shapes, crop=True)  
                 out_meta = f.meta
                 out_meta.update({"driver": "GTiff",
                                  "count":1,
