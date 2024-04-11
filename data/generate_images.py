@@ -11,13 +11,14 @@ import os
 from tqdm import tqdm
 from shapely import MultiPolygon, Polygon
 from shapely.geometry import box
+import json
 
 dir_list = os.listdir("./hour_graphs/") 
 isoc = {}
 max_box = [0,0]
 centers = {}
 bigs = {}
-for i in dir_list:
+for i in dir_list[:10]:
     fire_n = i.split("_")[1].split('.')[0]
     with open(f"../data/hour_graphs/{i}", "rb") as file:
         hr_graph = pickle.load(file)
@@ -69,8 +70,11 @@ with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     dims = f.read(1).shape
     image = f.read(1)
     transform = f.transform
+
+f = open('ignitions.json')
+ignitions = json.load(f)
+
 for i in tqdm(centers):
-    print(i)
     x, y = centers[i][0], centers[i][1]
     max_x = x + (bbox[0]/2)
     min_x = x - (bbox[0]/2)
@@ -105,8 +109,14 @@ for i in tqdm(centers):
         hr_graph = pickle.load(file)
     nodata = -9999.0
     mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
+    idx = np.unravel_index(ignitions[i] - 1, (1173, 1406))
+    mask[(idx[0]),(idx[1])] = True
     shape = (int(max_box[1])//80, int(max_box[0]//80))
     mask_ = np.zeros(shape, dtype=np.bool_).astype(np.uint8)
+    coords = rasterio.transform.xy(transform, idx[0], idx[1])
+    x = int((coords[0] - min_x) / 80)
+    y = int((max_y - coords[1]) / 80)
+    mask_[y,x] = True
     for t in hr_graph:
         iso = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
         iso_ = np.zeros(shape)
