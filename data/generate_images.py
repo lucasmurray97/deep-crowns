@@ -13,12 +13,14 @@ from shapely import MultiPolygon, Polygon
 from shapely.geometry import box
 import json
 
+f = open('ignitions.json')
+ignitions = json.load(f)
 dir_list = os.listdir("./hour_graphs/") 
 isoc = {}
 max_box = [0,0]
 centers = {}
 bigs = {}
-for i in dir_list[:10]:
+for i in tqdm(dir_list):
     fire_n = i.split("_")[1].split('.')[0]
     with open(f"../data/hour_graphs/{i}", "rb") as file:
         hr_graph = pickle.load(file)
@@ -30,6 +32,8 @@ for i in dir_list[:10]:
             nodata = -9999.0
             dims = f.read(1).shape
             mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
+            idx = np.unravel_index(ignitions[fire_n] - 1, (1173, 1406))
+            mask[(idx[0]),(idx[1])] = True
             for t in hr_graph:
                 for k,j in hr_graph[t][0]:
                     idx = np.unravel_index(k - 1, (1173, 1406))
@@ -71,8 +75,7 @@ with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     image = f.read(1)
     transform = f.transform
 
-f = open('ignitions.json')
-ignitions = json.load(f)
+
 
 for i in tqdm(centers):
     x, y = centers[i][0], centers[i][1]
@@ -116,6 +119,7 @@ for i in tqdm(centers):
     coords = rasterio.transform.xy(transform, idx[0], idx[1])
     x = int((coords[0] - min_x) / 80)
     y = int((max_y - coords[1]) / 80)
+    # print(f"Marking ignition point for fire {ignitions[i]}, in pos ({y}, {x})")
     mask_[y,x] = True
     for t in hr_graph:
         iso = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
@@ -137,6 +141,7 @@ for i in tqdm(centers):
             y = int((max_y - coords[1]) / 80)
             mask_[y,x] = True
             iso_[y,x] = True
+        assert(mask_.sum() != 0)
         plt.imsave(f'spreads/fire_{i}-{t}.png', mask_)
         plt.imsave(f'spreads/iso_{i}-{t}.png', iso_)
     
