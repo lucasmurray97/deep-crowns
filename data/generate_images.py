@@ -121,8 +121,12 @@ for i in tqdm(centers):
     with rioxarray.open_rasterio(f"./landscape/Input_Geotiff.tif") as src:
             out_image = src.rio.clip(shapes).values
             out_image = np.where(out_image == -9999.0, -1, out_image)
-    np.savez_compressed(f'backgrounds/background_{i}.npz', out_image)
     if len(hr_graph) > 1:
+        array_list = [out_image[i] for i in range(out_image.shape[0])]
+        np.savez_compressed(f'backgrounds/background_{i}.npz', a1 = array_list[0]
+                            , a2 = array_list[1], a3 = array_list[2], a4 = array_list[3]
+                            , a5 = array_list[4], a6 = array_list[5], a7 = array_list[6]
+                            , a8 = array_list[7])
         nodata = -9999.0
         mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
         idx = np.unravel_index(ignitions[i] - 1, (1173, 1406))

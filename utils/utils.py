@@ -15,6 +15,7 @@ import pathlib
 import rioxarray
 import pandas as pd
 import os
+from tqdm import tqdm
 
 class MyDataset(torch.utils.data.Dataset):
     """Creates dataset that sampes: (landscape + fire_t, isocrone_(t+1)).
@@ -40,6 +41,8 @@ class MyDataset(torch.utils.data.Dataset):
                 self.isoc.append(item.name)
         self.n = len(self.fires) - len(dir_list)
         self.transform = tform
+        self.data = {}
+        
     
     def __len__(self):
         return self.n
@@ -56,16 +59,16 @@ class MyDataset(torch.utils.data.Dataset):
         spread_number = n.split('_')[1].split('.png')[0]
         iso_number = m.split('_')[1].split('.png')[0]
         assert(int(spread_number.split('-')[1]) == int(iso_number.split('-')[1]) - 1)
-        with fiona.open(f"{self.root}/shapes/box_{fire_number}.shp", "r") as shapefile:
-            shapes = [feature["geometry"] for feature in shapefile]
-        with rioxarray.open_rasterio(f"{self.root}/landscape/Input_Geotiff.tif") as src:
-            out_image = src.rio.clip(shapes).values
-            out_image = np.where(out_image == -9999.0, -1, out_image)
+        file = np.load(f'{self.root}/backgrounds/background_{fire_number}.npz')
+        topology = np.concatenate([np.expand_dims(file["a1"], axis=0), np.expand_dims(file["a2"], axis=0), np.expand_dims(file["a3"], axis=0)
+                                , np.expand_dims(file["a4"], axis=0), np.expand_dims(file["a5"], axis=0), 
+                                np.expand_dims(file["a6"], axis=0), np.expand_dims(file["a7"], axis=0), 
+                                np.expand_dims(file["a8"], axis=0)])
         spread = read_image(f"{self.root}/spreads/fire_{spread_number}.png")
         spread = torch.where(spread[1] == 231, 1.0, 0.0)
         isoc = read_image(f"{self.root}/spreads/iso_{iso_number}.png")
         isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
-        input = torch.cat((spread.unsqueeze(0), torch.from_numpy(out_image)))
+        input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
         w_history = pd.read_csv(f'{self.root}/landscape/WeatherHistory.csv', header=None)
         n_weather = w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
         weather = pd.read_csv(f'{self.root}/landscape/Weathers/' + n_weather)
