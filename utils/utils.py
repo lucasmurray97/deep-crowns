@@ -42,8 +42,43 @@ class MyDataset(torch.utils.data.Dataset):
         self.n = len(self.fires) - len(dir_list)
         self.transform = tform
         self.data = {}
-        
-    
+        """
+        print("------------Loading Dataset ---------------")
+        for i in tqdm(range(len(self))):
+            potential = self.fires[i]
+            n = None
+            m = None
+            if potential.split("_")[1].split("-")[0] == self.fires[i+1].split("_")[1].split("-")[0]:
+                    n,m =  self.fires[i], self.isoc[i+1]
+            else:
+                n,m =  self.fires[i+1], self.isoc[i+2]
+            fire_number = n.split('_')[1].split('-')[0]
+            spread_number = n.split('_')[1].split('.png')[0]
+            iso_number = m.split('_')[1].split('.png')[0]
+            assert(int(spread_number.split('-')[1]) == int(iso_number.split('-')[1]) - 1)
+            file = np.load(f'{self.root}/backgrounds/background_{fire_number}.npz')
+            topology = np.concatenate([np.expand_dims(file["a1"], axis=0), np.expand_dims(file["a2"], axis=0), np.expand_dims(file["a3"], axis=0)
+                                    , np.expand_dims(file["a4"], axis=0), np.expand_dims(file["a5"], axis=0), 
+                                    np.expand_dims(file["a6"], axis=0), np.expand_dims(file["a7"], axis=0), 
+                                    np.expand_dims(file["a8"], axis=0)])
+            spread = read_image(f"{self.root}/spreads/fire_{spread_number}.png")
+            spread = torch.where(spread[1] == 231, 1.0, 0.0)
+            isoc = read_image(f"{self.root}/spreads/iso_{iso_number}.png")
+            isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
+            input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
+            w_history = pd.read_csv(f'{self.root}/landscape/WeatherHistory.csv', header=None)
+            n_weather = w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
+            weather = pd.read_csv(f'{self.root}/landscape/Weathers/' + n_weather)
+            scenario_n = int(spread_number.split('-')[1]) 
+            wind_speed = weather.iloc[int(scenario_n)]["WS"]
+            wind_direction = weather.iloc[int(scenario_n)]["WD"]
+            weather_tensor = torch.Tensor([wind_speed, wind_direction])
+            if self.transform:
+                input = self.transform(input)
+                isoc = self.transform(isoc)
+                weather_tensor = self.transform(weather_tensor)
+            self.data[i] = (input, weather_tensor, isoc)
+        """
     def __len__(self):
         return self.n
     
