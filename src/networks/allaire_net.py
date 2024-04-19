@@ -68,7 +68,7 @@ class Allaire_Net(nn.Module):
         self.epoch_loss += loss.item()
         self.n += 1
         return loss
-    def val_loss(self, x, y):
+    def validation_loss(self, x, y):
         val_loss = F.binary_cross_entropy(x.view(-1, 116220), y.view(-1, 116220), reduction='sum')
         self.val_epoch_loss += val_loss.item()
         self.m += 1
