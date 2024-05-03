@@ -31,10 +31,9 @@ class Conv_Net(nn.Module):
         self.bn6 = nn.BatchNorm1d(64)
         self.fc_1 = nn.Linear(in_features=1088, out_features=1024)
         self.bn7 = nn.BatchNorm1d(1024)
-        self.up1 = nn.Upsample(scale_factor = 4)
-        self.conv1_ = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(2,2))
-        self.up2 = nn.Upsample(size=(298, 390))
-        self.conv2_ = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=(1,1))
+        self.conv1_ = nn.ConvTranspose2d(in_channels=1, out_channels=16, kernel_size=(8,4), stride=(2,3))
+        self.conv2_ = nn.ConvTranspose2d(in_channels=16, out_channels=32, kernel_size=(8,3), stride=(2,2))
+        self.conv3_ = nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=(8,2), stride=(2,2))
         self.loss = []
         self.epoch_loss = 0
         self.val_loss = []
@@ -63,9 +62,11 @@ class Conv_Net(nn.Module):
         #print(x.shape)
         x = x.view(x.size(0), 1, 32, 32)
         #print(x.shape)
-        x = F.relu(self.conv1_(self.up1(x)))
+        x = F.relu(self.conv1_(x))
         #print(x.shape)
-        x = F.sigmoid(self.conv2_(self.up2(x)))
+        x = F.relu(self.conv2_(x))
+        #print(x.shape)
+        x = F.sigmoid(self.conv3_(x))
         #print(x.shape)
         return x
         
