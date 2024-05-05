@@ -16,16 +16,19 @@ class Conv_Net(nn.Module):
     def __init__(self, params = {}):
         super(Conv_Net, self).__init__()
         self.name = "Conv-Net"
-        self.conv1 = nn.Conv2d(in_channels=9, out_channels=16, kernel_size=(3,3), stride=(2,2)) # (64, 10, 10)
+        self.conv1 = nn.Conv2d(in_channels=9, out_channels=16, kernel_size=(2,2), stride=(2,2)) # (64, 10, 10)
         self.bn1 = nn.BatchNorm2d(16)
         self.max_pool_1 = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3,3), stride=(2,2)) # (64, 10, 10)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(2,2), stride=(2,2)) # (64, 10, 10)
         self.bn2 = nn.BatchNorm2d(32)
         self.max_pool_2 = nn.MaxPool2d(2)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(2,2), stride=(1,1)) # (64, 10, 10)
         self.bn3 = nn.BatchNorm2d(32)
         self.max_pool_3 = nn.MaxPool2d(2)
-        self.fci_1 = nn.Linear(in_features=2816, out_features=1024)
+        self.conv4 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(2,2), stride=(1,1)) # (64, 10, 10)
+        self.bn4_ = nn.BatchNorm2d(64)
+        self.max_pool_4_= nn.MaxPool2d(2)
+        self.fci_1 = nn.Linear(in_features=960, out_features=1024)
         self.bn5 = nn.BatchNorm1d(1024)
         self.fci_2 = nn.Linear(in_features=1024, out_features=512)
         self.bn5_2 = nn.BatchNorm1d(512)
@@ -37,9 +40,10 @@ class Conv_Net(nn.Module):
         self.bn7 = nn.BatchNorm1d(1024)
         self.fc_2 = nn.Linear(in_features=1024, out_features=1024)
         self.bn8 = nn.BatchNorm1d(1024)
-        self.conv1_ = nn.ConvTranspose2d(in_channels=1, out_channels=16, kernel_size=(8,4), stride=(2,3))
-        self.conv2_ = nn.ConvTranspose2d(in_channels=16, out_channels=32, kernel_size=(8,3), stride=(2,2))
-        self.conv3_ = nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=(8,2), stride=(2,2))
+        self.conv1_ = nn.ConvTranspose2d(in_channels=1, out_channels=16, kernel_size=(6,3), stride=(2,2))
+        self.conv2_ = nn.ConvTranspose2d(in_channels=16, out_channels=32, kernel_size=(6,2), stride=(1,2))
+        self.conv3_ = nn.ConvTranspose2d(in_channels=32, out_channels=64, kernel_size=(4,2), stride=(2,3))
+        self.conv4_ = nn.ConvTranspose2d(in_channels=64, out_channels=1, kernel_size=(4,2), stride=(2,1))
         self.loss = []
         self.epoch_loss = 0
         self.val_loss = []
@@ -55,6 +59,8 @@ class Conv_Net(nn.Module):
         x_i = self.max_pool_2(F.relu(self.bn2(self.conv2(x_i))))
         #print(x_i.shape)
         x_i = self.max_pool_3(F.relu(self.bn3(self.conv3(x_i))))
+        #print(x_i.shape)
+        x_i = self.max_pool_4_(F.relu(self.bn4_(self.conv4(x_i))))
         #print(x_i.shape)
         x_i = x_i.flatten(start_dim = 1)
         #print(x_i.shape)
@@ -75,7 +81,9 @@ class Conv_Net(nn.Module):
         #print(x.shape)
         x = F.relu(self.conv2_(x))
         #print(x.shape)
-        x = F.sigmoid(self.conv3_(x))
+        x = F.relu(self.conv3_(x))
+        #print(x.shape)
+        x = F.sigmoid(self.conv4_(x))
         #print(x.shape)
         return x
         
