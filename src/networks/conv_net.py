@@ -130,4 +130,10 @@ class Conv_Net(nn.Module):
         plt.legend()
         plt.savefig(f"Losses_{self.name}_{epochs}.png")
 
+    def finish(self, epochs):
+        self.plot_loss(epochs)
+        path_ = f"./networks/weights/{self.name}_{epochs}.pth"
+        torch.save(self.state_dict(), path_)
+
+
     

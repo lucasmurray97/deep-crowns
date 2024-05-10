@@ -30,9 +30,9 @@ wd = args.weight_decay
 transform = Normalize()
 dataset = MyDataset("../data", tform=transform)
 train_dataset, validation_dataset, test_dataset =torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, num_workers=8)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32, num_workers=8)
-test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, num_workers=8)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=8)
+test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8)
 
 net = Conv_Net()
 print(sum(p.numel() for p in net.parameters() if p.requires_grad))
@@ -58,6 +58,8 @@ for epoch in tqdm(range(epochs)):
     """
     net.reset_losses()
 net.plot_loss(epochs=epochs)
+net.finish(epochs)
+
 
 accuracy = BinaryAccuracy()
 precision = BinaryPrecision()
