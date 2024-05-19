@@ -73,7 +73,7 @@ class Conv_Net(nn.Module):
         x_i = self.max_pool_5_(F.relu(self.bn5_(self.conv5(x_i))))
         #print(x_i.shape)
         x_i = x_i.flatten(start_dim = 1)
-        print(x_i.shape)
+        #print(x_i.shape)
         x_i = F.relu(self.bn5(self.fci_1(x_i)))
         x_i = F.relu(self.bn5_2(self.fci_2(x_i)))
         #print(x_i.shape)
