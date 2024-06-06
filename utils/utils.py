@@ -29,7 +29,7 @@ class MyDataset(torch.utils.data.Dataset):
     def __init__(self, root, tform=None):
         super(MyDataset, self).__init__()
         self.root = root
-        HOME_FOLDER = pathlib.Path(root + "/spreads/")
+        HOME_FOLDER = pathlib.Path(root + "/spreads_400/")
         self.fires = {}
         self.isoc = {}
         self.n = 0
@@ -61,25 +61,24 @@ class MyDataset(torch.utils.data.Dataset):
                     self.keys[self.n] = (i, j)
                     self.n += 1
         
-        print(self.n)
         self.transform = tform
         self.data = {}
         
     def __len__(self):
-        return self.n
+        return 100
     
     def __getitem__(self, i):
         fire_number, spread_number = self.keys[i]
         iso_number = spread_number + 1
         assert(spread_number == iso_number - 1)
-        file = np.load(f'{self.root}/backgrounds/background_{fire_number}.npz')
+        file = np.load(f'{self.root}/backgrounds_400/background_{fire_number}.npz')
         topology = np.concatenate([np.expand_dims(file["a1"], axis=0), np.expand_dims(file["a2"], axis=0), np.expand_dims(file["a3"], axis=0)
                                 , np.expand_dims(file["a4"], axis=0), np.expand_dims(file["a5"], axis=0), 
                                 np.expand_dims(file["a6"], axis=0), np.expand_dims(file["a7"], axis=0), 
                                 np.expand_dims(file["a8"], axis=0)])
-        spread = read_image(f"{self.root}/spreads/fire_{fire_number}-{spread_number}.png")
+        spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
         spread = torch.where(spread[1] == 231, 1.0, 0.0)
-        isoc = read_image(f"{self.root}/spreads/iso_{fire_number}-{iso_number}.png")
+        isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")
         isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
         input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
         w_history = pd.read_csv(f'{self.root}/landscape/WeatherHistory.csv', header=None)
