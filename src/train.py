@@ -14,6 +14,7 @@ from tqdm import tqdm
 from networks.allaire_net import Allaire_Net
 from networks.conv_net import Conv_Net
 from networks.conv_net_2 import Conv_Net2
+from networks.unet import U_Net
 from networks.utils import EarlyStopper
 from torcheval.metrics import BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryRecall
 import json
@@ -32,21 +33,21 @@ transform = Normalize()
 dataset = MyDataset("../data", tform=transform)
 generator = torch.Generator().manual_seed(123)
 train_dataset, validation_dataset, test_dataset =torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8, generator=generator)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=2, generator=generator)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=8, generator=generator)
 test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=8, generator=generator)
 
-net = Conv_Net()
+net = Conv_Net2()
 print(sum(p.numel() for p in net.parameters() if p.requires_grad))
-net.cuda(0)
+#net.cuda(0)
 optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=wd)
 early_stopper = EarlyStopper(patience=5, min_delta=0.01)
 for epoch in tqdm(range(epochs)):
     n = 0
     for x, y in tqdm(train_loader):
         net.zero_grad()
-        pred = net((x[0].cuda(0), x[1].cuda(0)))
-        loss = net.train_loss(pred, y.cuda(0))
+        pred = net((x[0], x[1]))
+        loss = net.train_loss(pred, y)
         loss.backward()
         optimizer.step()
     if early_stopper.early_stop(net.epoch_loss):             
@@ -82,5 +83,5 @@ results["accuracy"] = accuracy.compute().item()
 results["precision"] = precision.compute().item()
 results["recall"] = recall.compute().item()
 results["f1"] = f1.compute().item()
-with open(f'./results_{net.name}_{epochs}.json', 'w') as f:
+with open(f'./plots/results_{net.name}_{epochs}.json', 'w') as f:
     json.dump(results, f)

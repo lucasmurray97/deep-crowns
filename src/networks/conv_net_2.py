@@ -123,7 +123,7 @@ class Conv_Net2(nn.Module):
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.legend()
-        plt.savefig(f"Losses_{self.name}_{epochs}.png")
+        plt.savefig(f"./plots/Losses_{self.name}_{epochs}.png")
 
     def finish(self, epochs):
         self.plot_loss(epochs)
