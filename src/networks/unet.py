@@ -95,7 +95,7 @@ class U_Net(nn.Module):
     
     def reset_losses(self):
         self.loss.append(self.epoch_loss/self.n)
-        #self.val_loss.append(self.val_epoch_loss/self.m)
+        self.val_loss.append(self.val_epoch_loss/self.m)
         self.epoch_loss = 0
         self.val_epoch_loss = 0
         self.n = 0
