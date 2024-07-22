@@ -16,6 +16,7 @@ import rioxarray
 import pandas as pd
 import os
 from tqdm import tqdm
+import json
 
 class MyDataset(torch.utils.data.Dataset):
     """Creates dataset that sampes: (landscape + fire_t, isocrone_(t+1)).
@@ -63,19 +64,29 @@ class MyDataset(torch.utils.data.Dataset):
         
         self.transform = tform
         self.data = {}
+        with rasterio.open(root + '/landscape/Input_Geotiff.tif') as f:
+            self.band_0 = f.read(1)
+            self.band_1 = f.read(2)
+            self.band_2 = f.read(3)
+            self.band_3 = f.read(4)
+            self.band_4 = f.read(5)
+            self.band_5 = f.read(6)
+            self.band_6 = f.read(7)
+            self.band_7 = f.read(8)
+        with open(root + "/indices.json") as f:
+            self.indices = json.load(f)
         
     def __len__(self):
-        return 100
+        return self.n
     
     def __getitem__(self, i):
         fire_number, spread_number = self.keys[i]
         iso_number = spread_number + 1
         assert(spread_number == iso_number - 1)
-        file = np.load(f'{self.root}/backgrounds_400/background_{fire_number}.npz')
-        topology = np.concatenate([np.expand_dims(file["a1"], axis=0), np.expand_dims(file["a2"], axis=0), np.expand_dims(file["a3"], axis=0)
-                                , np.expand_dims(file["a4"], axis=0), np.expand_dims(file["a5"], axis=0), 
-                                np.expand_dims(file["a6"], axis=0), np.expand_dims(file["a7"], axis=0), 
-                                np.expand_dims(file["a8"], axis=0)])
+        y, y_, x, x_ = self.indices[str(fire_number)]
+        topology = np.stack([self.band_0[y:y_, x:x_], self.band_1[y:y_, x:x_], self.band_2[y:y_, x:x_],
+                                   self.band_3[y:y_, x:x_],self.band_4[y:y_, x:x_],self.band_5[y:y_, x:x_],
+                                   self.band_6[y:y_, x:x_],self.band_7[y:y_, x:x_]])
         spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
         spread = torch.where(spread[1] == 231, 1.0, 0.0)
         isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")

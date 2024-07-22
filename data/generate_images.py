@@ -73,7 +73,7 @@ with rasterio.open('./landscape/Input_Geotiff.tif') as f:
     transform = f.transform
 
 
-
+indices_ = {}
 for i in tqdm(centers):
     x, y = centers[i][0], centers[i][1]
     max_x = x + (bbox[0]/2)
@@ -101,7 +101,10 @@ for i in tqdm(centers):
     if max_x > limits_x[1] or max_y > limits_y[1] or min_x < limits_x[0] or min_y < limits_y[0]:
         print(max_x, min_x, max_y, min_y)
         raise Exception("Out of bounds!")  
-    # box(minx, miny, maxx, maxy, ccw=True)
+    box_x, box_y = (int((max_x - min_x)/ 80), int((max_y - min_y)/80))
+    x, y = (int((min_x - limits[0]) / 80), int((min_y - limits[1]) / 80))
+    lands = image[y:y+box_y, x:x+box_x]
+    indices_[i] = (y, y + box_y, x, x + box_x)
     geom = box(min_x, min_y, max_x, max_y)
     gdr = gpd.GeoDataFrame({'feature': features_, 'geometry': geom}, crs=crs)
     gdr.to_file(f"./shapes_400/box_{i}.shp")
@@ -113,17 +116,11 @@ for i in tqdm(centers):
             out_image = src.rio.clip(shapes).values
             out_image = np.where(out_image == -9999.0, -1, out_image)
     if len(hr_graph) > 1:
-        array_list = [out_image[i] for i in range(out_image.shape[0])]
-        np.savez_compressed(f'backgrounds_400/background_{i}.npz', a1 = array_list[0]
-                            , a2 = array_list[1], a3 = array_list[2], a4 = array_list[3]
-                            , a5 = array_list[4], a6 = array_list[5], a7 = array_list[6]
-                            , a8 = array_list[7])
         nodata = -9999.0
         mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
         idx = np.unravel_index(ignitions[i] - 1, (1173, 1406))
         mask[(idx[0]),(idx[1])] = True
         shape = (int(bbox[1])//80, int(bbox[0]//80))
-        print(shape)
         mask_ = np.zeros(shape, dtype=np.bool_).astype(np.uint8)
         coords = rasterio.transform.xy(transform, idx[0], idx[1])
         x = int((coords[0] - min_x) / 80)
@@ -159,4 +156,5 @@ for i in tqdm(centers):
             plt.imsave(f'spreads_400/fire_{i}-{t}.png', mask_)
             plt.imsave(f'spreads_400/iso_{i}-{t}.png', iso_)
             temp = t + 1
-    
+with open('indices.json', 'w', encoding='utf-8') as f:
+    json.dump(indices_, f)
