@@ -16,6 +16,7 @@ class U_Net(nn.Module):
     def __init__(self, params = {}):
         super(U_Net, self).__init__()
         self.name = "U-Net"
+        self.cam = params["cam"]
         self.base_model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet',
             in_channels=9, out_channels=1, init_features=32)
         self.fcw_1 = nn.Linear(in_features=2, out_features=16)
@@ -30,6 +31,8 @@ class U_Net(nn.Module):
         self.val_epoch_loss = 0
         self.n = 0
         self.m = 0
+        # For gradcam
+        self.gradients = None
 
     def forward(self, x):
         x_i, x_w = x
@@ -51,7 +54,11 @@ class U_Net(nn.Module):
         #print(x_w.shape)
         combination = torch.cat((bottleneck, x_w), dim = 1)
         #print(combination.shape)
-        x_comb = F.relu(self.bn2(self.conv1(combination)))
+        h = self.conv1(combination)
+        # For gradcam
+        if self.cam:
+            h.register_hook(self.activations_hook)
+        x_comb = F.relu(self.bn2(h))
         #print(x_comb.shape)
         dec4 = self.base_model.upconv4(x_comb)
         #print(dec4.shape)
@@ -116,3 +123,34 @@ class U_Net(nn.Module):
         self.plot_loss(epochs)
         path_ = f"./networks/weights/{self.name}_{epochs}.pth"
         torch.save(self.state_dict(), path_)
+
+    # hook for the gradients of the activations
+    def activations_hook(self, grad):
+        self.gradients = grad
+
+    # method for the gradient extraction
+    def get_activations_gradient(self):
+        return self.gradients
+    
+    # method for the activation exctraction
+    def get_activations(self, x):
+        x_i, x_w = x
+        enc1 = self.base_model.encoder1(x_i.float())
+        #print(enc1.shape)
+        enc2 = self.base_model.encoder2(self.base_model.pool1(enc1))
+        #print(enc2.shape)
+        enc3 = self.base_model.encoder3(self.base_model.pool2(enc2))
+        #print(enc3.shape)
+        enc4 = self.base_model.encoder4(self.base_model.pool3(enc3))
+        #print(enc4.shape)
+        bottleneck = self.base_model.bottleneck(self.base_model.pool4(enc4))
+        # Vector and matrix combination:
+        x_w = F.relu(self.bn1(self.fcw_1(x_w)))
+        x_w = x_w.view(-1, 1, 4, 4)
+        #print(x_w.shape)
+        x_w = self.upconv_1(x_w)
+        #print(x_w.shape)
+        combination = torch.cat((bottleneck, x_w), dim = 1)
+        #print(combination.shape)
+        h = self.conv1(combination)
+        return h
