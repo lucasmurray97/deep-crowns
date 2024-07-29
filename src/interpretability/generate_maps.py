@@ -38,7 +38,7 @@ net.load_state_dict(torch.load("../networks/weights/U-Net_50.pth"))
 net.eval()
 
 n = 0
-for x, y in tqdm(train_loader):
+for idx, x, y in tqdm(train_loader):
     grad = []
     activation = []
     x_i, x_w = x
@@ -65,8 +65,9 @@ for x, y in tqdm(train_loader):
         heatmap = cam/(np.max(cam))
         heatmap = cv2.resize(heatmap, (400, 400))
         heatmap = np.array(heatmap, dtype='f')
+        print(idx.item())
         if y.sum() * 0.64 >= 100:
-            plt.imsave(f'attention_maps/ewes/{n}.png', heatmap)
+            plt.imsave(f'attention_maps/ewes/{idx.item()}.png', heatmap)
         else:
-            plt.imsave(f'attention_maps/not_ewes/{n}.png', heatmap)
+            plt.imsave(f'attention_maps/not_ewes/{idx.item()}.png', heatmap)
         n += 1
