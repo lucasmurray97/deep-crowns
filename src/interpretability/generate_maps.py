@@ -65,9 +65,16 @@ for idx, x, y in tqdm(train_loader):
         heatmap = cam/(np.max(cam))
         heatmap = cv2.resize(heatmap, (400, 400))
         heatmap = np.array(heatmap, dtype='f')
-        print(idx.item())
         if y.sum() * 0.64 >= 100:
-            plt.imsave(f'attention_maps/ewes/{idx.item()}.png', heatmap)
+            plt.imsave(f'attention_maps/ewes/{idx[0]}.png', heatmap)
+        elif y.sum() * 0.64 > 100 and y.sum() * 0.64 >= 50:
+            plt.imsave(f'attention_maps/100/{idx[0]}.png', heatmap)
+        elif y.sum() * 0.64 > 50 and y.sum() * 0.64 >= 20:
+            plt.imsave(f'attention_maps/50/{idx[0]}.png', heatmap)
+        elif y.sum() * 0.64 > 20 and y.sum() * 0.64 >= 10:
+            plt.imsave(f'attention_maps/20/{idx[0]}.png', heatmap)
+        elif y.sum() * 0.64 > 10 and y.sum() * 0.64 >= 5:
+            plt.imsave(f'attention_maps/10/{idx[0]}.png', heatmap)
         else:
-            plt.imsave(f'attention_maps/not_ewes/{idx.item()}.png', heatmap)
+            plt.imsave(f'attention_maps/5/{idx[0]}.png', heatmap)
         n += 1
