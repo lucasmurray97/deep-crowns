@@ -65,23 +65,28 @@ class MyDataset(torch.utils.data.Dataset):
         
         self.transform = tform
         self.data = {}
+        with rioxarray.open_rasterio(f"{root}/landscape/Input_Geotiff.tif") as src:
+            self.maxes = src.max(dim=["x", "y"]).values
         with rasterio.open(root + '/landscape/Input_Geotiff.tif') as f:
             self.band_0 = f.read(1)
-            self.band_0 = np.where(self.band_0 == -9999.0, -1, self.band_0)
+            self.band_0 = np.where(self.band_0 == -9999.0, -1, self.band_0) / self.maxes[0]
             self.band_1 = f.read(2)
-            self.band_1 = np.where(self.band_1 == -9999.0, -1, self.band_1)
+            self.band_1 = np.where(self.band_1 == -9999.0, -1, self.band_1) / self.maxes[1]
             self.band_2 = f.read(3)
-            self.band_2 = np.where(self.band_2 == -9999.0, -1, self.band_2)
+            self.band_2 = np.where(self.band_2 == -9999.0, -1, self.band_2) / self.maxes[2]
             self.band_3 = f.read(4)
-            self.band_3 = np.where(self.band_3 == -9999.0, -1, self.band_3)
+            self.band_3 = np.where(self.band_3 == -9999.0, -1, self.band_3) / self.maxes[3]
             self.band_4 = f.read(5)
-            self.band_4 = np.where(self.band_4 == -9999.0, -1, self.band_4)
+            self.band_4 = np.where(self.band_4 == -9999.0, -1, self.band_4) / self.maxes[4]
             self.band_5 = f.read(6)
-            self.band_5 = np.where(self.band_5 == -9999.0, -1, self.band_5)
+            self.band_5 = np.where(self.band_5 == -9999.0, -1, self.band_5) / self.maxes[5]
             self.band_6 = f.read(7)
-            self.band_6 = np.where(self.band_6 == -9999.0, -1, self.band_6)
+            self.band_6 = np.where(self.band_6 == -9999.0, -1, self.band_6) / self.maxes[6]
             self.band_7 = f.read(8)
-            self.band_7 = np.where(self.band_7 == -9999.0, -1, self.band_7)
+            self.band_7 = np.where(self.band_7 == -9999.0, -1, self.band_7) / self.maxes[7]
+
+        
+        self.landscape = np.stack([self.band_0, self.band_1, self.band_2, self.band_3, self.band_4, self.band_5, self.band_6, self.band_7], axis=0)
         with open(root + "/indices.json") as f:
             self.indices = json.load(f)
         
@@ -95,14 +100,13 @@ class MyDataset(torch.utils.data.Dataset):
         return self.n
     
     def __getitem__(self, i):
+        #start = time.process_time()
         fire_number, spread_number = self.keys[i]
         iso_number = spread_number + 1
         assert(spread_number == iso_number - 1)
         y, y_, x, x_ = self.indices[str(fire_number)]
         #start = time.process_time()
-        topology = np.stack([self.band_0[y:y_, x:x_], self.band_1[y:y_, x:x_], self.band_2[y:y_, x:x_],
-                                   self.band_3[y:y_, x:x_],self.band_4[y:y_, x:x_],self.band_5[y:y_, x:x_],
-                                   self.band_6[y:y_, x:x_],self.band_7[y:y_, x:x_]])
+        topology = self.landscape[:,y:y_, x:x_]
         #end = time.process_time()
         #print(f"Load background: {end - start}")
         #start2 = time.process_time()
@@ -126,6 +130,8 @@ class MyDataset(torch.utils.data.Dataset):
             input = self.transform(input)
             isoc = self.transform(isoc)
             weather_tensor = self.transform(weather_tensor)
+        end = time.process_time()
+        #print(f"Load background: {end - start}")
         return (input, weather_tensor), isoc
             
 
