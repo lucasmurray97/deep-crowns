@@ -41,8 +41,7 @@ nets = {
     "u-net-2": U_Net_V2,
 }
 
-transform = Normalize()
-dataset = MyDataset("../data", tform=transform)
+dataset = MyDataset("../data")
 generator = torch.Generator().manual_seed(123)
 train_dataset, validation_dataset, test_dataset =torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator)

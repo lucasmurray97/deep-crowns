@@ -96,59 +96,7 @@ class MyDataset(torch.utils.data.Dataset):
         for item in WEATHER_FOLDER.iterdir():
             self.weathers[item.name.split("/Weathers/")[0]] = pd.read_csv(f'{self.root}/landscape/Weathers/' + item.name)
         
-    def __len__(self):
-        return self.n
-    
-    def __getitem__(self, i):
-        #start = time.process_time()
-        fire_number, spread_number = self.keys[i]
-        iso_number = spread_number + 1
-        assert(spread_number == iso_number - 1)
-        y, y_, x, x_ = self.indices[str(fire_number)]
-        #start = time.process_time()
-        topology = self.landscape[:,y:y_, x:x_]
-        #end = time.process_time()
-        #print(f"Load background: {end - start}")
-        #start2 = time.process_time()
-        spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
-        spread = torch.where(spread[1] == 231, 1.0, 0.0)
-        isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")
-        isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
-        #end2 = time.process_time()
-        #print(f"Load Fire: {end2 - start2}")
-        input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
-        #start3 = time.process_time()
-        n_weather = self.w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
-        weather = self.weathers[n_weather]
-        scenario_n = spread_number 
-        wind_speed = weather.iloc[scenario_n]["WS"]
-        wind_direction = weather.iloc[scenario_n]["WD"]
-        weather_tensor = torch.Tensor([wind_speed, wind_direction])
-        #end3 = time.process_time()
-        #print(f"Load Weather: {end3 - start3}")
-        if self.transform:
-            input = self.transform(input)
-            isoc = self.transform(isoc)
-            weather_tensor = self.transform(weather_tensor)
-        end = time.process_time()
-        #print(f"Load background: {end - start}")
-        return (input, weather_tensor), isoc
-            
-
         
-
-class Normalize(object):
-    """Normalizes image channnel by channel.
-
-    Args:
-        image (Tensor): image of dimension (C x H x W), where normalization will be carried out
-        independently for the C channels
-    """
-
-    def __init__(self, root ="../data"):
-        self.root = root
-        with rioxarray.open_rasterio(f"{self.root}/landscape/Input_Geotiff.tif") as src:
-            self.maxes = src.max(dim=["x", "y"]).values
         w_dirs = os.listdir(f"{self.root}/landscape/Weathers")
         self.max_wd = 0
         self.max_ws = 0
@@ -167,23 +115,32 @@ class Normalize(object):
                     self.min_wd = wd
                 if ws < self.min_ws:
                     self.min_ws = ws
+        
+    def __len__(self):
+        return self.n
+    
+    def __getitem__(self, i):
+        fire_number, spread_number = self.keys[i]
+        iso_number = spread_number + 1
+        assert(spread_number == iso_number - 1)
+        y, y_, x, x_ = self.indices[str(fire_number)]
+        topology = self.landscape[:,y:y_, x:x_]
+        spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
+        spread = torch.where(spread[1] == 231, 1.0, 0.0)
+        isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")
+        isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
+        input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
+        n_weather = self.w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
+        weather = self.weathers[n_weather]
+        scenario_n = spread_number 
+        wind_speed = (weather.iloc[scenario_n]["WS"] - self.min_ws) / (self.max_ws - self.min_ws)
+        wind_direction = (weather.iloc[scenario_n]["WD"] - self.min_wd) / (self.max_wd - self.min_wd)
+        weather_tensor = torch.Tensor([wind_speed, wind_direction])
+        if self.transform:
+            input = self.transform(input)
+            isoc = self.transform(isoc)
+            weather_tensor = self.transform(weather_tensor)
+        return (input, weather_tensor), isoc
             
 
-    def __call__(self, image):
-        shape = image.shape
-        if len(shape) > 2:
-            if len(shape) > 3:
-                for i in range(shape[0]):
-                    image[i] = self(image[i])
-            else:
-                for i in range(1, shape[0]):
-                    image[i].apply_(lambda x: (x + 1)/(self.maxes[i-1] + 1))
-            return image
-        else:
-            if len(shape) > 1:
-                for i in range(shape[0]):
-                    image[i] = self(image[i])
-            else:
-                image[0] = (image[0] - self.min_ws) / (self.max_ws - self.min_ws)
-                image[1] = (image[1] - self.min_wd) / (self.max_wd - self.min_wd)
-            return image
+        
