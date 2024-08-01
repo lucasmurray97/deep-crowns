@@ -17,6 +17,7 @@ import pandas as pd
 import os
 from tqdm import tqdm
 import json
+import time
 
 class MyDataset(torch.utils.data.Dataset):
     """Creates dataset that sampes: (landscape + fire_t, isocrone_(t+1)).
@@ -66,15 +67,29 @@ class MyDataset(torch.utils.data.Dataset):
         self.data = {}
         with rasterio.open(root + '/landscape/Input_Geotiff.tif') as f:
             self.band_0 = f.read(1)
+            self.band_0 = np.where(self.band_0 == -9999.0, -1, self.band_0)
             self.band_1 = f.read(2)
+            self.band_1 = np.where(self.band_1 == -9999.0, -1, self.band_1)
             self.band_2 = f.read(3)
+            self.band_2 = np.where(self.band_2 == -9999.0, -1, self.band_2)
             self.band_3 = f.read(4)
+            self.band_3 = np.where(self.band_3 == -9999.0, -1, self.band_3)
             self.band_4 = f.read(5)
+            self.band_4 = np.where(self.band_4 == -9999.0, -1, self.band_4)
             self.band_5 = f.read(6)
+            self.band_5 = np.where(self.band_5 == -9999.0, -1, self.band_5)
             self.band_6 = f.read(7)
+            self.band_6 = np.where(self.band_6 == -9999.0, -1, self.band_6)
             self.band_7 = f.read(8)
+            self.band_7 = np.where(self.band_7 == -9999.0, -1, self.band_7)
         with open(root + "/indices.json") as f:
             self.indices = json.load(f)
+        
+        self.w_history = pd.read_csv(f'{self.root}/landscape/WeatherHistory.csv', header=None)
+        self.weathers = {}
+        WEATHER_FOLDER = pathlib.Path(root + "/landscape/Weathers")
+        for item in WEATHER_FOLDER.iterdir():
+            self.weathers[item.name.split("/Weathers/")[0]] = pd.read_csv(f'{self.root}/landscape/Weathers/' + item.name)
         
     def __len__(self):
         return self.n
@@ -84,21 +99,29 @@ class MyDataset(torch.utils.data.Dataset):
         iso_number = spread_number + 1
         assert(spread_number == iso_number - 1)
         y, y_, x, x_ = self.indices[str(fire_number)]
+        #start = time.process_time()
         topology = np.stack([self.band_0[y:y_, x:x_], self.band_1[y:y_, x:x_], self.band_2[y:y_, x:x_],
                                    self.band_3[y:y_, x:x_],self.band_4[y:y_, x:x_],self.band_5[y:y_, x:x_],
                                    self.band_6[y:y_, x:x_],self.band_7[y:y_, x:x_]])
+        #end = time.process_time()
+        #print(f"Load background: {end - start}")
+        #start2 = time.process_time()
         spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
         spread = torch.where(spread[1] == 231, 1.0, 0.0)
         isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")
         isoc = torch.where(isoc[1] == 231, 1.0, 0.0).unsqueeze(0)
+        #end2 = time.process_time()
+        #print(f"Load Fire: {end2 - start2}")
         input = torch.cat((spread.unsqueeze(0), torch.from_numpy(topology)))
-        w_history = pd.read_csv(f'{self.root}/landscape/WeatherHistory.csv', header=None)
-        n_weather = w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
-        weather = pd.read_csv(f'{self.root}/landscape/Weathers/' + n_weather)
+        #start3 = time.process_time()
+        n_weather = self.w_history.iloc[int(fire_number)-1].values[0].split("Weathers/")[1]
+        weather = self.weathers[n_weather]
         scenario_n = spread_number 
         wind_speed = weather.iloc[scenario_n]["WS"]
         wind_direction = weather.iloc[scenario_n]["WD"]
         weather_tensor = torch.Tensor([wind_speed, wind_direction])
+        #end3 = time.process_time()
+        #print(f"Load Weather: {end3 - start3}")
         if self.transform:
             input = self.transform(input)
             isoc = self.transform(isoc)
