@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import sys
 sys.path.append("../utils/")
 from torch.utils.data import DataLoader
-from utils import MyDataset, Normalize
+from utils import MyDataset
 from tqdm import tqdm
 
 class U_Net_V2(nn.Module):
