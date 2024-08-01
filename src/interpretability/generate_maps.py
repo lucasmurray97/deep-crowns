@@ -24,6 +24,8 @@ from networks.utils import EarlyStopper
 import json
 import argparse
 import os
+from PIL import Image
+from torchvision.transforms import ToPILImage
 
 transform = Normalize(root="../../data")
 dataset = MyDataset(root="../../data", tform=transform)
@@ -65,16 +67,17 @@ for idx, x, y in tqdm(train_loader):
         heatmap = cam/(np.max(cam))
         heatmap = cv2.resize(heatmap, (400, 400))
         heatmap = np.array(heatmap, dtype='f')
+        im = ToPILImage()(torch.from_numpy(heatmap))
         if y.sum() * 0.64 >= 100:
-            plt.imsave(f'attention_maps/ewes/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/ewes/{idx[0]}.png', "PNG")
         elif y.sum() * 0.64 > 100 and y.sum() * 0.64 >= 50:
-            plt.imsave(f'attention_maps/100/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/100/{idx[0]}.png', "PNG")
         elif y.sum() * 0.64 > 50 and y.sum() * 0.64 >= 20:
-            plt.imsave(f'attention_maps/50/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/50/{idx[0]}.png', "PNG")
         elif y.sum() * 0.64 > 20 and y.sum() * 0.64 >= 10:
-            plt.imsave(f'attention_maps/20/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/20/{idx[0]}.png', "PNG")
         elif y.sum() * 0.64 > 10 and y.sum() * 0.64 >= 5:
-            plt.imsave(f'attention_maps/10/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/10/{idx[0]}.png', "PNG")
         else:
-            plt.imsave(f'attention_maps/5/{idx[0]}.png', heatmap)
+            im.save(f'attention_maps/5/{idx[0]}.png', "PNG")
         n += 1
