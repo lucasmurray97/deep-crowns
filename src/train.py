@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import sys
 sys.path.append("../utils/")
 from torch.utils.data import DataLoader
-from utils import MyDataset, Normalize
+from utils import MyDataset
 from tqdm import tqdm
 from networks.allaire_net import Allaire_Net
 from networks.conv_net import Conv_Net
@@ -44,7 +44,7 @@ nets = {
 dataset = MyDataset("../data")
 generator = torch.Generator().manual_seed(123)
 train_dataset, validation_dataset, test_dataset =torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator, num_workers=6)
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=batch_size, generator=generator)
 test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator)
 

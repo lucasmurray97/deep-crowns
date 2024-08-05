@@ -140,7 +140,7 @@ class MyDataset(torch.utils.data.Dataset):
             input = self.transform(input)
             isoc = self.transform(isoc)
             weather_tensor = self.transform(weather_tensor)
-        return (input, weather_tensor), isoc
+        return (fire_number, iso_number), (input, weather_tensor), isoc
             
 
         
