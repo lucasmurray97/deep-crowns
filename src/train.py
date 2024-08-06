@@ -96,3 +96,26 @@ results["recall"] = recall.compute().item()
 results["f1"] = f1.compute().item()
 with open(f'./plots/results_{net.name}_{epochs}.json', 'w') as f:
     json.dump(results, f)
+
+net.cuda(0)
+accuracy = BinaryAccuracy()
+precision = BinaryPrecision()
+recall = BinaryRecall()
+f1 = BinaryF1Score()
+net.eval()
+for x, y in tqdm(train_loader):
+    with torch.no_grad():
+        pred = net((x[0].cuda(0), x[1].cuda(0)))
+        probs = pred.flatten()
+        target = y.flatten().cuda(0)
+        accuracy.update(probs, target.int())
+        precision.update(probs, target.int())
+        recall.update(probs, target.int())
+        f1.update(probs, target.int())
+results = {}
+results["accuracy"] = accuracy.compute().item()
+results["precision"] = precision.compute().item()
+results["recall"] = recall.compute().item()
+results["f1"] = f1.compute().item()
+with open(f'./plots/results_val_{net.name}_{epochs}.json', 'w') as f:
+    json.dump(results, f)
