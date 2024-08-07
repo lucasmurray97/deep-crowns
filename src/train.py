@@ -55,7 +55,7 @@ optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=wd)
 early_stopper = EarlyStopper(patience=5, min_delta=0.01)
 for epoch in tqdm(range(epochs)):
     n = 0
-    for x, y in tqdm(train_loader):
+    for _, x, y in tqdm(train_loader):
         net.zero_grad()
         pred = net((x[0].cuda(0), x[1].cuda(0)))
         loss = net.train_loss(pred, y.cuda(0))
@@ -80,7 +80,7 @@ precision = BinaryPrecision()
 recall = BinaryRecall()
 f1 = BinaryF1Score()
 net.eval()
-for x, y in tqdm(train_loader):
+for _, x, y in tqdm(train_loader):
     with torch.no_grad():
         pred = net((x[0].cuda(0), x[1].cuda(0)))
         probs = pred.flatten()

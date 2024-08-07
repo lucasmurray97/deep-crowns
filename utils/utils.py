@@ -64,29 +64,13 @@ class MyDataset(torch.utils.data.Dataset):
                     self.n += 1
         
         self.transform = tform
-        self.data = {}
+        self.data = None
         with rioxarray.open_rasterio(f"{root}/landscape/Input_Geotiff.tif") as src:
-            self.maxes = src.max(dim=["x", "y"]).values
-        with rasterio.open(root + '/landscape/Input_Geotiff.tif') as f:
-            self.band_0 = f.read(1)
-            self.band_0 = np.where(self.band_0 == -9999.0, -1, self.band_0) / self.maxes[0]
-            self.band_1 = f.read(2)
-            self.band_1 = np.where(self.band_1 == -9999.0, -1, self.band_1) / self.maxes[1]
-            self.band_2 = f.read(3)
-            self.band_2 = np.where(self.band_2 == -9999.0, -1, self.band_2) / self.maxes[2]
-            self.band_3 = f.read(4)
-            self.band_3 = np.where(self.band_3 == -9999.0, -1, self.band_3) / self.maxes[3]
-            self.band_4 = f.read(5)
-            self.band_4 = np.where(self.band_4 == -9999.0, -1, self.band_4) / self.maxes[4]
-            self.band_5 = f.read(6)
-            self.band_5 = np.where(self.band_5 == -9999.0, -1, self.band_5) / self.maxes[5]
-            self.band_6 = f.read(7)
-            self.band_6 = np.where(self.band_6 == -9999.0, -1, self.band_6) / self.maxes[6]
-            self.band_7 = f.read(8)
-            self.band_7 = np.where(self.band_7 == -9999.0, -1, self.band_7) / self.maxes[7]
-
-        
-        self.landscape = np.stack([self.band_0, self.band_1, self.band_2, self.band_3, self.band_4, self.band_5, self.band_6, self.band_7], axis=0)
+            self.data = src.where(src != -9999.0, -1)
+            self.max = self.data.max(dim=["x", "y"]).values
+            self.min = self.data.min(dim=["x", "y"]).values
+        for i in range(len(self.max)):
+            self.data[i,:,:] = (self.data[i,:,:] - self.min[i]) / (self.max[i]-self.min[i])
         with open(root + "/indices.json") as f:
             self.indices = json.load(f)
         
@@ -124,7 +108,7 @@ class MyDataset(torch.utils.data.Dataset):
         iso_number = spread_number + 1
         assert(spread_number == iso_number - 1)
         y, y_, x, x_ = self.indices[str(fire_number)]
-        topology = self.landscape[:,y:y_, x:x_]
+        topology = self.data[:,y:y_, x:x_].to_numpy()
         spread = read_image(f"{self.root}/spreads_400/fire_{fire_number}-{spread_number}.png")
         spread = torch.where(spread[1] == 231, 1.0, 0.0)
         isoc = read_image(f"{self.root}/spreads_400/iso_{fire_number}-{iso_number}.png")
