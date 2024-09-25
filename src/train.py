@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import sys
 sys.path.append("../utils/")
 from torch.utils.data import DataLoader
-from utils import MyDataset, Normalize
+from utils import MyDataset, Normalize, MyDatasetV2
 from tqdm import tqdm
 from networks.allaire_net import Allaire_Net
 from networks.conv_net import Conv_Net
@@ -27,6 +27,7 @@ parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--weight_decay', type=float, default=0)
 parser.add_argument('--net', type=str, default="conv-net")
 parser.add_argument('--batch_size', type=int, default = 32)
+parser.add_argument('--workers', type=int, default = 4)
 
 args = parser.parse_args()
 epochs = args.epochs
@@ -34,6 +35,7 @@ lr = args.lr
 wd = args.weight_decay
 network = args.net
 batch_size = args.batch_size
+workers = args.workers
 nets = {
     "conv": Conv_Net,
     "conv-2": Conv_Net2,
@@ -42,28 +44,28 @@ nets = {
 }
 
 transform = Normalize()
-dataset = MyDataset("../data", tform=transform)
+dataset = MyDatasetV2("../data", tform=transform)
 generator = torch.Generator().manual_seed(123)
 train_dataset, validation_dataset, test_dataset =torch.utils.data.random_split(dataset, [0.8, 0.1, 0.1])
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator)
-validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=batch_size, generator=generator)
-test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator, num_workers=workers)
+validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=batch_size, generator=generator, num_workers=workers)
+test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator, num_workers=workers)
 
-net = nets[network]()
+net = nets[network]({"cam": False})
 print(sum(p.numel() for p in net.parameters() if p.requires_grad))
 net.cuda(0)
 optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=wd)
 early_stopper = EarlyStopper(patience=5, min_delta=0.01)
 for epoch in tqdm(range(epochs)):
     n = 0
-    for x, y in tqdm(train_loader):
+    for _, x, y in tqdm(train_loader):
         net.zero_grad()
         pred = net((x[0].cuda(0), x[1].cuda(0)))
         loss = net.train_loss(pred, y.cuda(0))
         loss.backward()
         optimizer.step()
 
-    for x, y in validation_loader:
+    for _, x, y in validation_loader:
         pred = net((x[0].cuda(0), x[1].cuda(0)))
         loss = net.validation_loss(pred, y.cuda(0))
 
@@ -81,7 +83,7 @@ precision = BinaryPrecision()
 recall = BinaryRecall()
 f1 = BinaryF1Score()
 net.eval()
-for x, y in tqdm(train_loader):
+for _, x, y in tqdm(train_loader):
     with torch.no_grad():
         pred = net((x[0].cuda(0), x[1].cuda(0)))
         probs = pred.flatten()
