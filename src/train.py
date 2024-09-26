@@ -28,6 +28,7 @@ parser.add_argument('--weight_decay', type=float, default=0)
 parser.add_argument('--net', type=str, default="conv-net")
 parser.add_argument('--batch_size', type=int, default = 32)
 parser.add_argument('--workers', type=int, default = 4)
+parser.add_argument('--path', type=str, default="./")
 
 args = parser.parse_args()
 epochs = args.epochs
@@ -36,6 +37,8 @@ wd = args.weight_decay
 network = args.net
 batch_size = args.batch_size
 workers = args.workers
+path = args.path
+
 nets = {
     "conv": Conv_Net,
     "conv-2": Conv_Net2,
@@ -51,7 +54,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
 validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=batch_size, generator=generator, num_workers=workers)
 test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, generator=generator, num_workers=workers)
 
-net = nets[network]({"cam": False})
+net = nets[network]({"cam": False, "path": path})
 print(sum(p.numel() for p in net.parameters() if p.requires_grad))
 net.cuda(0)
 optimizer = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=wd)
@@ -97,5 +100,5 @@ results["accuracy"] = accuracy.compute().item()
 results["precision"] = precision.compute().item()
 results["recall"] = recall.compute().item()
 results["f1"] = f1.compute().item()
-with open(f'./plots/results_{net.name}_{epochs}.json', 'w') as f:
+with open(f'{path}/plots/results_{net.name}_{epochs}.json', 'w') as f:
     json.dump(results, f)

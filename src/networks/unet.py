@@ -17,6 +17,7 @@ class U_Net(nn.Module):
         super(U_Net, self).__init__()
         self.name = "U-Net"
         self.cam = params["cam"]
+        self.path = params["path"]
         self.base_model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet',
             in_channels=9, out_channels=1, init_features=32)
         self.fcw_1 = nn.Linear(in_features=2, out_features=16)
@@ -117,11 +118,11 @@ class U_Net(nn.Module):
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.legend()
-        plt.savefig(f"./plots/Losses_{self.name}_{epochs}.png")
+        plt.savefig(f"{self.path}/plots/Losses_{self.name}_{epochs}.png")
 
     def finish(self, epochs):
         self.plot_loss(epochs)
-        path_ = f"./networks/weights/{self.name}_{epochs}.pth"
+        path_ = f"{self.path}/networks/weights/{self.name}_{epochs}.pth"
         torch.save(self.state_dict(), path_)
 
     # hook for the gradients of the activations

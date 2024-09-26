@@ -16,6 +16,7 @@ class U_Net_V2(nn.Module):
     def __init__(self, params = {}):
         super(U_Net_V2, self).__init__()
         self.name = "U-Net-v2"
+        self.path = params["path"]
         self.base_model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet',
             in_channels=9, out_channels=1, init_features=64)
         self.fcw_1 = nn.Linear(in_features=2, out_features=16)
@@ -110,9 +111,9 @@ class U_Net_V2(nn.Module):
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.legend()
-        plt.savefig(f"./plots/Losses_{self.name}_{epochs}.png")
+        plt.savefig(f"{self.path}/plots/Losses_{self.name}_{epochs}.png")
 
     def finish(self, epochs):
         self.plot_loss(epochs)
-        path_ = f"./networks/weights/{self.name}_{epochs}.pth"
+        path_ = f"{self.path}/networks/weights/{self.name}_{epochs}.pth"
         torch.save(self.state_dict(), path_)
