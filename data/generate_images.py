@@ -101,10 +101,12 @@ for i in tqdm(centers):
     if max_x > limits_x[1] or max_y > limits_y[1] or min_x < limits_x[0] or min_y < limits_y[0]:
         print(max_x, min_x, max_y, min_y)
         raise Exception("Out of bounds!")  
+    y_max, x_min = rasterio.transform.rowcol(transform, min_x, min_y)
+    y_min, x_max = rasterio.transform.rowcol(transform, max_x, max_y)
     box_x, box_y = (int((max_x - min_x)/ 80), int((max_y - min_y)/80))
     x, y = (int((min_x - limits[0]) / 80), int((min_y - limits[1]) / 80))
     lands = image[y:y+box_y, x:x+box_x]
-    indices_[i] = (y, y + box_y, x, x + box_x)
+    indices_[i] = (y_min, y_max, x_min, x_max)
     geom = box(min_x, min_y, max_x, max_y)
     gdr = gpd.GeoDataFrame({'feature': features_, 'geometry': geom}, crs=crs)
     gdr.to_file(f"./shapes_400/box_{i}.shp")
@@ -114,7 +116,27 @@ for i in tqdm(centers):
             shapes = [feature["geometry"] for feature in shapefile]
     with rioxarray.open_rasterio(f"./landscape/Input_Geotiff.tif") as src:
             out_image = src.rio.clip(shapes).values
-            out_image = np.where(out_image == -9999.0, -1, out_image)
+            #out_image = np.where(out_image == -9999.0, -1, out_image)
+    """
+    print((image[y_min:y_max, x_min:x_max] == out_image[0]).sum())
+    dif = image[y_min:y_max, x_min:x_max] != out_image[0]
+    print(dif.shape)
+    print(out_image[0][dif])
+    print(image[y_min:y_max, x_min:x_max][dif])
+    plt.imshow(out_image[0])
+    plt.colorbar()
+    plt.savefig("caca.png")
+    plt.close()
+    plt.imshow(image[y_min:y_max, x_min:x_max])
+    plt.colorbar()
+    plt.savefig("caca1.png")
+    plt.close()
+    plt.imshow(image[y_min:y_max, x_min:x_max] - out_image[0])
+    plt.colorbar()
+    plt.savefig("caca2.png")
+    plt.close()
+    """
+    #assert((image[y_min:y_max, x_min:x_max] == out_image[0]).all())
     if len(hr_graph) > 1:
         nodata = -9999.0
         mask = np.zeros(dims, dtype=np.bool_).astype(np.uint8)
